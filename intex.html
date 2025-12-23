@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>厦门海沧华附实验小学中国传统吉祥图案尺规作图演示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 w-full max-w-4xl">
+        <header class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800">厦门海沧华附实验小学中国传统吉祥图案尺规作图演示</h1>
+            <p class="text-slate-500 mt-2">逐步展示如何使用圆规和直尺，从等边三角形出发构建吉祥图案</p>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls flex flex-wrap items-center justify-center gap-4 mb-6">
+            <div class="flex items-center gap-2">
+                <label for="construction-select" class="text-slate-600 font-medium">选择吉祥图案:</label>
+                <select id="construction-select" class="rounded-md border-slate-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="sanjiaoliuhuan">三交六椀菱花</option>
+                    <option value="xuehualiujiao">雪花六角纹</option>
+                    <option value="sanjiaolianhua">三角莲花纹</option>
+                    <option value="santugonger">三兔共耳纹</option>
+                    <option value="sanjiaohuiwen">三角回纹 (雷纹)</option>
+                    <option value="sanjiaobubujin">三角步步锦</option>
+                    <option value="sanjiaotaiyang">三角太阳芒纹</option>
+                    <option value="sanjiaobabao">三角八宝纹</option>
+                    <option value="sanjiaowanzi">三角万字不断头</option>
+                    <option value="longfeng">三角龙凤呈祥</option>
+                </select>
+            </div>
+            <div class="flex gap-4">
+                <button id="next-step" class="px-5 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition-colors">下一步</button>
+                <button id="reset" class="px-5 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg shadow-sm hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-opacity-75 transition-colors">重置</button>
+            </div>
+        </div>
+
+        <!-- Canvas for Animation -->
+        <div class="w-full bg-slate-50 border-2 border-slate-200 rounded-lg overflow-hidden shadow-inner" style="aspect-ratio: 16/10;">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <!-- Step Description -->
+        <div class="mt-6 p-4 bg-indigo-50 border-l-4 border-indigo-400 rounded-r-lg min-h-[6rem]">
+            <h3 class="font-bold text-indigo-800">操作步骤</h3>
+            <p id="step-description" class="text-slate-700 mt-1">请选择一个吉祥图案，然后点击“下一步”开始演示。</p>
+        </div>
+        
+        <!-- Cultural Information -->
+        <div id="cultural-info-container" class="mt-6 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
+            <h3 id="cultural-title" class="font-bold text-amber-800">寓意与文化内涵</h3>
+            <div id="cultural-content" class="text-slate-700 mt-1">
+                <p><strong>寓意解析:</strong> <span id="cultural-meaning">选择一个图案以查看其寓意。</span></p>
+                <p class="mt-2"><strong>文化内涵:</strong> <span id="cultural-context">选择一个图案以查看其文化背景。</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const constructionSelect = document.getElementById('construction-select');
+        const nextStepBtn = document.getElementById('next-step');
+        const resetBtn = document.getElementById('reset');
+        const descriptionEl = document.getElementById('step-description');
+        const culturalMeaningEl = document.getElementById('cultural-meaning');
+        const culturalContextEl = document.getElementById('cultural-context');
+        const culturalContainer = document.getElementById('cultural-info-container');
+
+        // --- Canvas Setup ---
+        let scale = 1;
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const size = container.clientWidth;
+            scale = size / 800; // Using a virtual coordinate system of 800 width
+            canvas.width = size;
+            canvas.height = container.clientHeight;
+            drawCurrentState();
+        }
+
+        // --- State Management ---
+        let state = { construction: 'sanjiaoliuhuan', step: 0, maxSteps: 0 };
+
+        // --- Color & Style Constants ---
+        const COLORS = {
+            BASE: '#334155', HELPER: '#cbd5e1', COMPASS: '#a5b4fc',
+            CONSTRUCT: '#f87171', FINAL: '#34d399', LABEL: '#1e293b',
+        };
+
+        // --- Cultural Information ---
+        const CULTURAL_INFO = {
+            sanjiaoliuhuan: {
+                meaning: "三角形象征天地人三才；六瓣菱花寓意六合（四方上下）；中心圆为“太极”，象征宇宙核心。",
+                context: "故宫最高等级窗棂纹样，象征皇权天授、天地交泰。"
+            },
+            xuehualiujiao: {
+                meaning: "雪为纯洁、祥瑞之兆；六角形象征六合同春；对称结构体现天道有序。",
+                context: "常见于北方剪纸与窗花，寓意瑞雪兆丰年。"
+            },
+            sanjiaolianhua: {
+                meaning: "莲花象征出淤泥而不染；三角形为“火”形，火中莲寓意净化与重生；六瓣代表六度波罗蜜（佛教修行法门）。",
+                context: "用于佛教藻井与唐卡，象征清净圆满。"
+            },
+            santugonger: {
+                meaning: "“三”象征“三生万物”，代表生生不息；兔子象征多子多福；循环追逐的形态寓意前世、今生、来世的轮回。",
+                context: "源自敦煌莫高窟藻井图案，融合佛教与道教思想。"
+            },
+            sanjiaohuiwen: {
+                meaning: "回纹象征富贵不断头；三角形为“雷”之象形，寓意震慑邪祟；循环结构代表永恒与再生。",
+                context: "商周青铜器常见，用于祈福避灾。"
+            },
+            sanjiaobubujin: {
+                meaning: "阶梯象征步步高升；三角形为“山”形，寓意稳如泰山；对称结构体现前程有序。",
+                context: "用于书院窗棂，寓意科举顺遂、仕途通达。"
+            },
+            sanjiaotaiyang: {
+                meaning: "太阳象征生命与权威；三角形为“火”与“光”的象形；十二芒代表十二时辰，寓意普照全天。",
+                context: "新石器时代彩陶纹样，象征部落兴旺与天命所归。"
+            },
+            sanjiaobabao: {
+                meaning: "八宝象征吉祥、智慧、圆满；三角形为“火焰宝”，寓意烧尽烦恼；中心圆为“法轮”，象征佛法常转。",
+                context: "藏族建筑装饰，用于祈福与护法。"
+            },
+            sanjiaowanzi: {
+                meaning: "卍字象征万德庄严；三角形为“火”形，寓意光明普照；旋转结构代表轮回与永恒。",
+                context: "佛教与道教共用符号，用于护宅与祈福。"
+            },
+            longfeng: {
+                meaning: "龙为阳刚，凤为阴柔，三角形象征阴阳交泰；对称结构寓意夫妻和谐、家宅兴旺；三角形尖端向外，象征驱邪避煞。(此为抽象几何纹样)",
+                context: "婚嫁剪纸常用，寓意百年好合。(此为抽象几何纹样)"
+            }
+        };
+
+        // --- Geometry Definitions ---
+        const GEOMETRY = {
+             center: {x: 400, y: 250},
+             radius: 150,
+        };
+
+        // --- Animation Step Generation ---
+        let dynamicSteps = {};
+        let orderedSteps = [];
+
+        function setupStepsForConstruction(construction) {
+            let newSteps = {};
+            let newOrderedSteps = [];
+            const O = GEOMETRY.center;
+            const R = GEOMETRY.radius;
+
+            const getCirclePoints = (num, radius, center, startAngle = -Math.PI / 2) => {
+                const points = [];
+                for (let i = 0; i < num; i++) {
+                    const angle = startAngle + (Math.PI * 2 / num) * i;
+                    points.push({
+                        x: center.x + radius * Math.cos(angle),
+                        y: center.y + radius * Math.sin(angle),
+                        label: String.fromCharCode(65 + i)
+                    });
+                }
+                return points;
+            };
+            
+            // Reusable function for getting 6 points on a circle
+            const constructSixPoints = (R_val = R, O_val = O) => {
+                const A = {x: O_val.x, y: O_val.y - R_val, label: 'A'};
+                const B = getCircleIntersection(A, R_val, O_val, R_val)[1]; B.label = 'B';
+                const C = getCircleIntersection(B, R_val, O_val, R_val)[1]; C.label = 'C';
+                const D = {x: O_val.x, y: O_val.y + R_val, label: 'D'};
+                const E = getCircleIntersection(D, R_val, O_val, R_val)[0]; E.label = 'E';
+                const F = getCircleIntersection(A, R_val, O_val, R_val)[0]; F.label = 'F';
+                return [A, B, C, D, E, F];
+            }
+
+
+            switch(construction) {
+                case 'sanjiaoliuhuan': {
+                    const points = constructSixPoints();
+                    const [A, B, C, D, E, F] = points;
+
+                    newSteps['intro'] = { description: "1. 作基准圆O，并在圆上任取一点A。", draw: () => {
+                        drawCircle(O, R, COLORS.HELPER, 1.5);
+                        drawPoint(O, 'O');
+                        drawPoint(A, 'A');
+                    }};
+                    newSteps['get_pts'] = { description: "2. 以A为圆心，半径OA作弧，交圆于B、F两点。", draw: () => {
+                        newSteps.intro.draw();
+                        drawCompassArc(A, R, B, 0.5);
+                        drawPoint(B, 'B');
+                        drawPoint(F, 'F');
+                    }};
+                    newSteps['get_all_pts'] = { description: "3. 依次以B, C, D...为圆心，OA为半径截取下一点，获得六等分点A,B,C,D,E,F。", draw: () => {
+                        newSteps.intro.draw();
+                        points.forEach(p => drawPoint(p, p.label));
+                        drawCompassArc(A, R, B, 0.2, true);
+                        drawCompassArc(B, R, C, 0.2, true);
+                        drawCompassArc(C, R, D, 0.2, true);
+                    }};
+                    newSteps['tri1'] = { description: "4. 连接A, C, E三点，构成第一个等边三角形。", draw: () => {
+                        newSteps.get_all_pts.draw();
+                        drawSegment(A, C, COLORS.CONSTRUCT, 3);
+                        drawSegment(C, E, COLORS.CONSTRUCT, 3);
+                        drawSegment(E, A, COLORS.CONSTRUCT, 3);
+                    }};
+                    newSteps['tri2'] = { description: "5. 连接B, D, F三点，构成第二个等边三角形。", draw: () => {
+                        newSteps.tri1.draw();
+                        drawSegment(B, D, COLORS.CONSTRUCT, 3);
+                        drawSegment(D, F, COLORS.CONSTRUCT, 3);
+                        drawSegment(F, B, COLORS.CONSTRUCT, 3);
+                    }};
+                    newSteps['final'] = { description: "完成！两个三角形相交构成六角星形，即“三交六椀菱花”。", draw: () => {
+                        drawCircle(O, R, COLORS.HELPER, 1);
+                        drawSegment(A, C, COLORS.FINAL, 4); drawSegment(C, E, COLORS.FINAL, 4); drawSegment(E, A, COLORS.FINAL, 4);
+                        drawSegment(B, D, COLORS.FINAL, 4); drawSegment(D, F, COLORS.FINAL, 4); drawSegment(F, B, COLORS.FINAL, 4);
+                        points.forEach(p => drawPoint(p, p.label));
+                    }};
+                    newOrderedSteps = ['intro', 'get_pts', 'get_all_pts', 'tri1', 'tri2', 'final'];
+                    break;
+                }
+                 case 'xuehualiujiao': {
+                    const R_inner = R * 0.7;
+                    const points = constructSixPoints(R_inner, O);
+                    const [A, B, C, D, E, F] = points;
+                    const side = getDistance(A, B);
+                    const outerPoints = points.map((p, i) => {
+                        const next_p = points[(i + 1) % 6];
+                        const pt = getCircleIntersection(p, side, next_p, side)[0];
+                        pt.label = String.fromCharCode(71 + i); // G, H, I...
+                        return pt;
+                    });
+                    const [G, H, I, J, K, L] = outerPoints;
+
+                    const drawBase = (stepFn) => {
+                         drawSegment(A, B, COLORS.BASE, 2); drawSegment(B, C, COLORS.BASE, 2); drawSegment(C, D, COLORS.BASE, 2);
+                         drawSegment(D, E, COLORS.BASE, 2); drawSegment(E, F, COLORS.BASE, 2); drawSegment(F, A, COLORS.BASE, 2);
+                         points.forEach(p => drawPoint(p, p.label));
+                         if(stepFn) stepFn();
+                    };
+
+                    newSteps['intro'] = { description: "1. 作出中心的正六边形ABCDEF。", draw: () => drawBase() };
+                    newSteps['arc1'] = { description: "2. 以A为圆心，边长AB为半径作弧。", draw: () => drawBase(() => {
+                        drawCompassArc(A, side, G, 0.4);
+                    }) };
+                    newSteps['arc2'] = { description: "3. 以B为圆心，边长AB为半径作弧，两弧交于G点。", draw: () => drawBase(() => {
+                        drawCompassArc(A, side, G, 0.4);
+                        drawCompassArc(B, side, G, 0.4);
+                        drawPoint(G, 'G', COLORS.CONSTRUCT);
+                    })};
+                    newSteps['tri1'] = { description: "4. 连接AG, BG，形成第一个外部三角形。", draw: () => drawBase(() => {
+                        drawPoint(G, 'G');
+                        drawSegment(A, G, COLORS.CONSTRUCT, 3);
+                        drawSegment(B, G, COLORS.CONSTRUCT, 3);
+                    })};
+                    newSteps['all_tris'] = { description: "5. 对其余各边重复此操作，找出H, I, J, K, L点并连接。", draw: () => drawBase(() => {
+                        outerPoints.forEach((op, i) => {
+                            const p1 = points[i];
+                            const p2 = points[(i + 1) % 6];
+                            drawPoint(op, op.label);
+                            drawSegment(p1, op, COLORS.BASE, 3);
+                            drawSegment(p2, op, COLORS.BASE, 3);
+                        });
+                    })};
+                     newSteps['final'] = { description: "完成！“雪花六角纹”象征六合同春，瑞雪兆丰年。", draw: () => {
+                         ctx.save(); ctx.scale(scale, scale);
+                         const path = [A,G,B,H,C,I,D,J,E,K,F,L];
+                         ctx.beginPath();
+                         ctx.moveTo(path[0].x, path[0].y);
+                         for(let i=1; i<path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+                         ctx.closePath();
+                         ctx.fillStyle = `rgba(52, 211, 153, 0.2)`; ctx.fill();
+                         ctx.strokeStyle = COLORS.FINAL; ctx.lineWidth = 4; ctx.stroke();
+                         ctx.restore();
+                    }};
+                    newOrderedSteps = ['intro', 'arc1', 'arc2', 'tri1', 'all_tris', 'final'];
+                    break;
+                }
+                case 'sanjiaolianhua': {
+                    const points = constructSixPoints();
+                    const [A, B, C, D, E, F] = points;
+                    
+                    const drawBase = (stepFn) => {
+                        drawCircle(O, R, COLORS.HELPER, 1.5);
+                        drawPoint(O, 'O');
+                        points.forEach(p => drawPoint(p, p.label, COLORS.HELPER));
+                        if(stepFn) stepFn();
+                    };
+                    newSteps['intro'] = { description: "1. 作辅助圆O和六个等分点A,B,C,D,E,F。", draw: () => drawBase() };
+                    newSteps['petal1'] = { description: "2. 连接O, A, B三点，构成第一瓣莲花(等边三角形)。", draw: () => drawBase(() => {
+                        points.forEach(p => drawPoint(p, p.label));
+                        drawSegment(O, A, COLORS.CONSTRUCT, 3);
+                        drawSegment(A, B, COLORS.CONSTRUCT, 3);
+                        drawSegment(B, O, COLORS.CONSTRUCT, 3);
+                    })};
+                    newSteps['all_petals'] = { description: "3. 依次连接其余各点(O-B-C, O-C-D...)，形成完整的六瓣莲花。", draw: () => {
+                        drawBase(() => {
+                            points.forEach(p => drawPoint(p, p.label));
+                            for(let i=0; i<6; i++){
+                                const p1 = points[i];
+                                const p2 = points[(i+1)%6];
+                                drawSegment(O, p1, COLORS.BASE, 2.5);
+                                drawSegment(p1, p2, COLORS.BASE, 2.5);
+                                drawSegment(p2, O, COLORS.BASE, 2.5);
+                            }
+                        });
+                    }};
+                    newSteps['final'] = { description: "完成！“三角莲花纹”由六个等边三角形组成，象征清净圆满。", draw: () => {
+                         for(let i=0; i<6; i++){
+                            const p1 = points[i];
+                            const p2 = points[(i+1)%6];
+                            drawSegment(O, p1, COLORS.FINAL, 4);
+                            drawSegment(p1, p2, COLORS.FINAL, 4);
+                            drawSegment(p2, O, COLORS.FINAL, 4);
+                         }
+                         drawPoint(O, 'O');
+                         points.forEach(p => drawPoint(p, p.label));
+                    }};
+                    newOrderedSteps = ['intro', 'petal1', 'all_petals', 'final'];
+                    break;
+                }
+                 case 'santugonger': {
+                    const R_outer = R;
+                    const R_inner = R * 0.25;
+                    const O_inner = {x: O.x, y: O.y + R*0.1};
+
+                    const outer_pts = getCirclePoints(3, R_outer, O, -Math.PI/2);
+                    const [D, E, F] = outer_pts;
+                    
+                    const inner_pts = getCirclePoints(3, R_inner, O_inner, Math.PI/2);
+                    const [A, B, C] = inner_pts;
+                    
+                    const drawBase = (stepFn) => {
+                        drawCircle(O, R_outer, COLORS.HELPER, 1.5);
+                        if(stepFn) stepFn();
+                    };
+
+                    newSteps['intro'] = { description: "1. 作基准圆O，并在圆心附近作小的等边三角形ABC，作为三兔共用的耳朵。", draw: () => drawBase(() => {
+                        drawSegment(A, B, COLORS.BASE, 3);
+                        drawSegment(B, C, COLORS.BASE, 3);
+                        drawSegment(C, A, COLORS.BASE, 3);
+                        inner_pts.forEach(p => drawPoint(p, p.label));
+                    }) };
+                    newSteps['outer_pts'] = { description: "2. 在外圆上取三个等分点D, E, F，作为三只兔子的头部位置。", draw: () => {
+                         newSteps.intro.draw();
+                         outer_pts.forEach(p => drawPoint(p, p.label));
+                    }};
+                    newSteps['head1'] = { description: "3. 连接D点与耳朵的两个顶点B, A，构成第一只兔子的轮廓。", draw: () => {
+                        newSteps.outer_pts.draw();
+                        drawSegment(D, B, COLORS.CONSTRUCT, 2);
+                        drawSegment(D, A, COLORS.CONSTRUCT, 2);
+                    }};
+                    newSteps['all_heads'] = { description: "4. 同理连接E与C,B，连接F与A,C，形成三兔追逐的形态。", draw: () => {
+                        newSteps.outer_pts.draw();
+                        drawSegment(D, B, COLORS.BASE, 2); drawSegment(D, A, COLORS.BASE, 2);
+                        drawSegment(E, C, COLORS.BASE, 2); drawSegment(E, B, COLORS.BASE, 2);
+                        drawSegment(F, A, COLORS.BASE, 2); drawSegment(F, C, COLORS.BASE, 2);
+                    }};
+                    newSteps['final'] = { description: "完成！“三兔共耳纹”象征生生不息与轮回。", draw: () => {
+                        drawSegment(A, B, COLORS.FINAL, 4); drawSegment(B, C, COLORS.FINAL, 4); drawSegment(C, A, COLORS.FINAL, 4);
+                        drawSegment(D, B, COLORS.FINAL, 4); drawSegment(D, A, COLORS.FINAL, 4);
+                        drawSegment(E, C, COLORS.FINAL, 4); drawSegment(E, B, COLORS.FINAL, 4);
+                        drawSegment(F, A, COLORS.FINAL, 4); drawSegment(F, C, COLORS.FINAL, 4);
+                    }};
+                    newOrderedSteps = ['intro', 'outer_pts', 'head1', 'all_heads', 'final'];
+                    break;
+                }
+                 case 'sanjiaohuiwen': {
+                    const startX = 180, Y = 250, side = 70;
+                    const p = Array.from({length: 8}, (_, i) => ({x: startX + i*side, y: Y, label: `P${i}`}));
+                    const top_v = [], bottom_v = [];
+                    for(let i=0; i<7; i++){
+                        if (i % 2 === 0) top_v.push(getCircleIntersection(p[i], side, p[i+1], side)[0]);
+                        else bottom_v.push(getCircleIntersection(p[i], side, p[i+1], side)[1]);
+                    }
+                    top_v.forEach((v, i) => v.label = `A${i}`);
+                    bottom_v.forEach((v, i) => v.label = `B${i}`);
+
+                    const drawBase = (stepFn) => {
+                        drawSegment({x:50, y:Y}, {x:750, y:Y}, COLORS.HELPER, 1.5);
+                        p.forEach(pt => drawPoint(pt, pt.label, COLORS.HELPER));
+                        if(stepFn) stepFn();
+                    };
+                    
+                    newSteps['intro'] = { description: "1. 作一条水平基线，并在其上取等距点P0, P1, P2...", draw: () => drawBase() };
+                    newSteps['arc1'] = { description: "2. 以P0, P1为圆心，P0P1为半径作弧，交于A0点。", draw: () => drawBase(() => {
+                        drawCompassArc(p[0], side, top_v[0], 0.3);
+                        drawCompassArc(p[1], side, top_v[0], 0.3);
+                        drawPoint(top_v[0], 'A0');
+                    })};
+                    newSteps['tri1'] = { description: "3. 连接P0, P1, A0，构成第一个向上的等边三角形。", draw: () => {
+                         newSteps.arc1.draw();
+                         drawSegment(p[0], p[1], COLORS.CONSTRUCT, 3);
+                         drawSegment(p[0], top_v[0], COLORS.CONSTRUCT, 3);
+                         drawSegment(p[1], top_v[0], COLORS.CONSTRUCT, 3);
+                    }};
+                     newSteps['tri2'] = { description: "4. 同理，以P1, P2为圆心作弧交于B0，构成向下的三角形。", draw: () => {
+                         newSteps.tri1.draw();
+                         drawCompassArc(p[1], side, bottom_v[0], 0.3);
+                         drawCompassArc(p[2], side, bottom_v[0], 0.3);
+                         drawPoint(bottom_v[0], 'B0');
+                         drawSegment(p[1], p[2], COLORS.CONSTRUCT, 3);
+                         drawSegment(p[1], bottom_v[0], COLORS.CONSTRUCT, 3);
+                         drawSegment(p[2], bottom_v[0], COLORS.CONSTRUCT, 3);
+                    }};
+                    newSteps['all_tris'] = { description: "5. 沿直线交替作出一系列上下排列的三角形。", draw: () => {
+                         drawSegment({x:50, y:Y}, {x:750, y:Y}, COLORS.HELPER, 1);
+                         for(let i=0; i<7; i++){
+                            if(i%2 === 0){
+                                const v = top_v[i/2];
+                                drawSegment(p[i], v, COLORS.BASE, 3); drawSegment(p[i+1], v, COLORS.BASE, 3);
+                            } else {
+                                const v = bottom_v[(i-1)/2];
+                                drawSegment(p[i], v, COLORS.BASE, 3); drawSegment(p[i+1], v, COLORS.BASE, 3);
+                            }
+                         }
+                         drawSegment(p[0], p[7], COLORS.BASE, 3);
+                    }};
+                    newSteps['final'] = { description: "完成！“三角回纹”也称雷纹，象征富贵不断头。", draw: () => {
+                         const path = [p[0], top_v[0], p[1], bottom_v[0], p[2], top_v[1], p[3], bottom_v[1], p[4], top_v[2], p[5], bottom_v[2], p[6], top_v[3], p[7]];
+                         ctx.save(); ctx.scale(scale, scale);
+                         ctx.beginPath();
+                         ctx.moveTo(p[0].x, p[0].y);
+                         for(let i=0; i<top_v.length; i++){ ctx.lineTo(top_v[i].x, top_v[i].y); ctx.lineTo(p[i+1].x, p[i+1].y); }
+                         ctx.lineTo(p[7].x, p[7].y);
+                         for(let i=bottom_v.length-1; i>=0; i--){ ctx.lineTo(p[i*2+2].x, p[i*2+2].y); ctx.lineTo(bottom_v[i].x, bottom_v[i].y); }
+                         ctx.lineTo(p[1].x,p[1].y)
+                         ctx.strokeStyle = COLORS.FINAL; ctx.lineWidth = 4;
+                         // This pattern is tricky to stroke as one continuous path. Drawing segments is more reliable.
+                         ctx.restore();
+                         for(let i=0; i<7; i++){
+                            if(i%2 === 0){
+                                const v = top_v[i/2];
+                                drawSegment(p[i], v, COLORS.FINAL, 4); drawSegment(p[i+1], v, COLORS.FINAL, 4);
+                            } else {
+                                const v = bottom_v[(i-1)/2];
+                                drawSegment(p[i], v, COLORS.FINAL, 4); drawSegment(p[i+1], v, COLORS.FINAL, 4);
+                            }
+                         }
+                         drawSegment(p[0], p[7], COLORS.FINAL, 4);
+                    }};
+                    newOrderedSteps = ['intro', 'arc1', 'tri1', 'tri2', 'all_tris', 'final'];
+                    break;
+                }
+                case 'sanjiaobubujin': {
+                    const A = {x: 400, y: 100, label: 'A'}, B = {x: 150, y: 400, label: 'B'}, C = {x: 650, y: 400, label: 'C'};
+                    const getMid = (p1, p2) => ({x: (p1.x+p2.x)/2, y: (p1.y+p2.y)/2});
+                    const D = getMid(B,C); D.label = 'D';
+                    const E = getMid(A,C); E.label = 'E';
+                    const F = getMid(A,B); F.label = 'F';
+                    
+                    const H = getMid(F,E); H.label = 'H';
+                    const I = getMid(A,E); I.label = 'I';
+                    const J = getMid(A,F); J.label = 'J';
+
+                    newSteps['intro'] = { description: "1. 作一个大的等边三角形ABC。", draw: () => {
+                        drawSegment(A, B, COLORS.BASE, 3); drawSegment(B, C, COLORS.BASE, 3); drawSegment(C, A, COLORS.BASE, 3);
+                        [A,B,C].forEach(p => drawPoint(p, p.label));
+                    }};
+                    newSteps['midpoints1'] = { description: "2. 作三边中点D, E, F。(尺规作法为作每条边的垂直平分线)", draw: () => {
+                        newSteps.intro.draw();
+                        drawCompassArc(A, getDistance(A,B)/2 + 20, F, 0.1);
+                        drawCompassArc(B, getDistance(A,B)/2 + 20, F, 0.1);
+                        [D,E,F].forEach(p => drawPoint(p, p.label, COLORS.CONSTRUCT));
+                    }};
+                    newSteps['connect1'] = { description: "3. 连接D, E, F，将大三角形分割为四个小三角形。", draw: () => {
+                        newSteps.intro.draw();
+                        [D,E,F].forEach(p => drawPoint(p, p.label));
+                        drawSegment(D, E, COLORS.BASE, 2); drawSegment(E, F, COLORS.BASE, 2); drawSegment(F, D, COLORS.BASE, 2);
+                    }};
+                     newSteps['midpoints2'] = { description: "4. 在顶部的三角形AFE中，继续找出三边中点H, I, J。", draw: () => {
+                        newSteps.connect1.draw();
+                        [H,I,J].forEach(p => drawPoint(p, p.label, COLORS.CONSTRUCT));
+                    }};
+                    newSteps['final'] = { description: "完成！连接H, I, J。这种层层嵌套的结构寓意步步高升。", draw: () => {
+                        drawSegment(A, B, COLORS.FINAL, 4); drawSegment(B, C, COLORS.FINAL, 4); drawSegment(C, A, COLORS.FINAL, 4);
+                        drawSegment(D, E, COLORS.FINAL, 3); drawSegment(E, F, COLORS.FINAL, 3); drawSegment(F, D, COLORS.FINAL, 3);
+                        drawSegment(H, I, COLORS.FINAL, 2); drawSegment(I, J, COLORS.FINAL, 2); drawSegment(J, H, COLORS.FINAL, 2);
+                    }};
+                    newOrderedSteps = ['intro', 'midpoints1', 'connect1', 'midpoints2', 'final'];
+                    break;
+                }
+                case 'sanjiaotaiyang': {
+                    const R_outer = R * 1.2;
+                    const points = getCirclePoints(12, R_outer, O);
+                    const inner_tri_pts = getCirclePoints(3, R*0.3, O);
+                    const [A,B,C] = inner_tri_pts;
+                    
+                    newSteps['intro'] = { description: "1. 在中心作一个小的等边三角形ABC。", draw: () => {
+                        drawSegment(A, B, COLORS.BASE, 3);
+                        drawSegment(B, C, COLORS.BASE, 3);
+                        drawSegment(C, A, COLORS.BASE, 3);
+                    }};
+                    newSteps['rays'] = { description: "2. 作一个大的辅助圆，并定出十二等分点。", draw: () => {
+                        newSteps.intro.draw();
+                        drawCircle(O, R_outer, COLORS.HELPER, 1.5);
+                        points.forEach(p => drawPoint(p, '', COLORS.HELPER));
+                    }};
+                    newSteps['ray1'] = { description: "3. 连接圆心O与其中一个等分点P1，构成第一道光芒。", draw: () => {
+                        newSteps.rays.draw();
+                        drawSegment(O, points[0], COLORS.CONSTRUCT, 2);
+                    }};
+                    newSteps['final'] = { description: "完成！十二道光芒象征太阳普照十二时辰。", draw: () => {
+                        drawSegment(A, B, COLORS.FINAL, 4);
+                        drawSegment(B, C, COLORS.FINAL, 4);
+                        drawSegment(C, A, COLORS.FINAL, 4);
+                        points.forEach(p => {
+                             drawSegment(O, p, COLORS.FINAL, 3);
+                        });
+                    }};
+                    newOrderedSteps = ['intro', 'rays', 'ray1', 'final'];
+                    break;
+                }
+                case 'sanjiaobabao': {
+                    const R_oct = R * 0.9;
+                    const points = getCirclePoints(8, R_oct, O, Math.PI/8);
+                    const side = getDistance(points[0], points[1]);
+                    const outerPoints = points.map((p, i) => {
+                        const next_p = points[(i + 1) % 8];
+                        return getCircleIntersection(p, side, next_p, side)[0];
+                    });
+
+                    const drawBase = (stepFn) => {
+                        for(let i=0; i<8; i++) drawSegment(points[i], points[(i+1)%8], COLORS.BASE, 2);
+                        if(stepFn) stepFn();
+                    };
+
+                    newSteps['intro'] = { description: "1. 作出中心的八边形。(尺规作法：作正方形及其对角线，再作对角线夹角的角平分线)", draw: () => drawBase() };
+                    newSteps['tri1'] = { description: "2. 以八边形的一条边为底，向外作一个等边三角形。", draw: () => drawBase(() => {
+                        drawCompassArc(points[0], side, outerPoints[0], 0.4);
+                        drawCompassArc(points[1], side, outerPoints[0], 0.4);
+                        drawSegment(points[0], outerPoints[0], COLORS.CONSTRUCT, 3);
+                        drawSegment(points[1], outerPoints[0], COLORS.CONSTRUCT, 3);
+                    })};
+                    newSteps['final'] = { description: "完成！八个三角形环绕中心，象征吉祥圆满。", draw: () => {
+                         outerPoints.forEach((op, i) => {
+                            const p1 = points[i];
+                            const p2 = points[(i + 1) % 8];
+                            drawSegment(p1, op, COLORS.FINAL, 4);
+                            drawSegment(p2, op, COLORS.FINAL, 4);
+                        });
+                        for(let i=0; i<8; i++) drawSegment(points[i], points[(i+1)%8], COLORS.FINAL, 4);
+                    }};
+                    newOrderedSteps = ['intro', 'tri1', 'final'];
+                    break;
+                }
+                case 'sanjiaowanzi': {
+                    const s = 100;
+                    const p1 = {x:O.x-s/2, y:O.y-s/2}, p2={x:O.x+s/2, y:O.y-s/2}, p3={x:O.x+s/2, y:O.y+s/2}, p4={x:O.x-s/2, y:O.y+s/2};
+                    
+                    const p5={x:p1.x-s, y:p1.y}, p6={x:p2.x, y:p2.y-s}, p7={x:p3.x+s, y:p3.y}, p8={x:p4.x, y:p4.y+s};
+                    const p9={x:p1.x-s, y:p1.y-s}, p10={x:p2.x+s, y:p2.y-s}, p11={x:p3.x+s, y:p3.y+s}, p12={x:p4.x-s, y:p4.y+s};
+
+                    const drawBase = (stepFn) => {
+                        drawSegment(p1,p2,COLORS.BASE,2); drawSegment(p2,p3,COLORS.BASE,2);
+                        drawSegment(p3,p4,COLORS.BASE,2); drawSegment(p4,p1,COLORS.BASE,2);
+                        if(stepFn) stepFn();
+                    };
+                    newSteps['intro'] = { description: "1. 作出中心正方形。", draw: () => drawBase()};
+                    newSteps['arm1'] = { description: "2. 从一个角(P2)开始，向外延伸构建一个L形臂。", draw: () => drawBase(() => {
+                        drawSegment(p2, p6, COLORS.CONSTRUCT, 3);
+                        drawSegment(p6, p10, COLORS.CONSTRUCT, 3);
+                        drawSegment(p10, p3, COLORS.CONSTRUCT, 3);
+                    })};
+                    newSteps['all_arms'] = { description: "3. 按旋转对称方式，构建其余三个臂。", draw: () => {
+                         drawSegment(p1, p2, COLORS.BASE, 2);
+                         drawSegment(p2, p6, COLORS.BASE, 2); drawSegment(p6, p10, COLORS.BASE, 2); drawSegment(p10, p3, COLORS.BASE, 2);
+                         drawSegment(p3, p7, COLORS.BASE, 2); drawSegment(p7, p11, COLORS.BASE, 2); drawSegment(p11, p4, COLORS.BASE, 2);
+                         drawSegment(p4, p8, COLORS.BASE, 2); drawSegment(p8, p12, COLORS.BASE, 2); drawSegment(p12, p1, COLORS.BASE, 2);
+                         drawSegment(p1, p5, COLORS.BASE, 2); drawSegment(p5, p9, COLORS.BASE, 2); drawSegment(p9, p2, COLORS.BASE, 2);
+                    }};
+                    newSteps['final'] = { description: "完成！旋转相连的结构构成“卍”字，象征万德庄严、万福集门。", draw: () => {
+                        const path = [p3,p7,p11,p4,p8,p12,p1,p5,p9,p2,p6,p10,p3];
+                        ctx.save(); ctx.scale(scale, scale);
+                        ctx.beginPath();
+                        ctx.moveTo(path[0].x, path[0].y);
+                        for(let i=1; i<path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+                        ctx.strokeStyle = COLORS.FINAL; ctx.lineWidth = 4; ctx.stroke();
+                        ctx.restore();
+                    }};
+                    newOrderedSteps = ['intro', 'arm1', 'all_arms', 'final'];
+                    break;
+                }
+                case 'longfeng': {
+                    const A = {x:O.x, y: O.y-R*1.3}, B={x:O.x-R, y:O.y}, C={x:O.x+R, y:O.y};
+                    const D = {x:O.x, y: O.y+R*1.3};
+                    const E = getCircleIntersection(B,getDistance(B,C), D, getDistance(B,C))[0]; E.label='E';
+                    const F = getCircleIntersection(C,getDistance(B,C), D, getDistance(B,C))[1]; F.label='F';
+                    const G = {x:O.x-R*0.5, y:O.y-R*0.8}, H={x:O.x+R*0.5, y:O.y-R*0.8};
+                    
+                    newSteps['intro'] = { description: "开始作抽象的“三角龙凤呈祥”。首先作一条垂直对称轴。", draw: () => {
+                        drawSegment({x:O.x, y:50}, {x:O.x, y:450}, COLORS.HELPER, 1, false, true);
+                    }};
+                    newSteps['body'] = { description: "1. 沿对称轴作两个背对的等边三角形(ABC, EFD)，作为龙凤身体的主干。", draw: () => {
+                        newSteps.intro.draw();
+                        drawSegment(A,B,COLORS.BASE,2); drawSegment(B,C,COLORS.BASE,2); drawSegment(C,A,COLORS.BASE,2);
+                        drawSegment(D,E,COLORS.BASE,2); drawSegment(E,F,COLORS.BASE,2); drawSegment(F,D,COLORS.BASE,2);
+                    }};
+                    newSteps['heads'] = { description: "2. 在上方作两个相对的三角形(AGB, AHC)，作为头部。", draw: () => {
+                        newSteps.body.draw();
+                        drawSegment(A,G,COLORS.CONSTRUCT,2); drawSegment(G,B,COLORS.CONSTRUCT,2);
+                        drawSegment(A,H,COLORS.CONSTRUCT,2); drawSegment(H,C,COLORS.CONSTRUCT,2);
+                    }};
+                    newSteps['tails'] = { description: "3. 在下方连接BD和CD作为尾部，形成对称的整体。", draw: () => {
+                        newSteps.heads.draw();
+                        drawSegment(B,D,COLORS.BASE,2); drawSegment(C,D,COLORS.BASE,2);
+                    }};
+                    newSteps['final'] = { description: "完成！通过对称的三角形组合，抽象地表现龙凤呈祥、阴阳和谐的寓意。", draw: () => {
+                        drawSegment(A,B,COLORS.FINAL,3); drawSegment(B,C,COLORS.FINAL,3); drawSegment(C,A,COLORS.FINAL,3);
+                        drawSegment(D,E,COLORS.FINAL,3); drawSegment(E,F,COLORS.FINAL,3); drawSegment(F,D,COLORS.FINAL,3);
+                        drawSegment(A,G,COLORS.FINAL,3); drawSegment(G,B,COLORS.FINAL,3);
+                        drawSegment(A,H,COLORS.FINAL,3); drawSegment(H,C,COLORS.FINAL,3);
+                        drawSegment(B,D,COLORS.FINAL,3); drawSegment(C,D,COLORS.FINAL,3);
+                    }};
+                    newOrderedSteps = ['intro', 'body', 'heads', 'tails', 'final'];
+                    break;
+                }
+            }
+            dynamicSteps = newSteps; 
+            if (newOrderedSteps.length > 0) {
+                orderedSteps = [...newOrderedSteps, 'end'];
+                newSteps['end'] = { description: "操作完成！点击“重置”或选择新的吉祥图案。", draw: newSteps[newOrderedSteps[newOrderedSteps.length-1]].draw };
+            }
+            state.maxSteps = orderedSteps.length -1;
+        }
+
+        // --- Drawing & Math Helpers ---
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+        function getDistance(p1, p2) { return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2)); }
+
+        function getCircleIntersection(p1, r1, p2, r2) {
+            let d = getDistance(p1, p2);
+            if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0) return [];
+            
+            let a = (r1*r1 - r2*r2 + d*d) / (2*d);
+            let h = Math.sqrt(Math.max(0, r1*r1 - a*a));
+            let x2 = p1.x + a * (p2.x - p1.x) / d;
+            let y2 = p1.y + a * (p2.y - p1.y) / d;
+
+            let pa = {x: x2 + h * (p2.y - p1.y) / d, y: y2 - h * (p2.x - p1.x) / d};
+            let pb = {x: x2 - h * (p2.y - p1.y) / d, y: y2 + h * (p2.x - p1.x) / d};
+            
+            // Return consistent order, typically top/bottom or left/right
+            if (Math.abs(pa.y - pb.y) < 0.1) return pa.x < pb.x ? [pa, pb] : [pb, pa];
+            return pa.y < pb.y ? [pa, pb] : [pb, pa];
+        }
+
+        function drawPoint(center, label, color=COLORS.LABEL) {
+            if (!center || typeof center.x === 'undefined') return;
+            ctx.save(); ctx.scale(scale, scale); ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(center.x, center.y, 5, 0, Math.PI * 2); ctx.fill();
+            if (label) {
+                ctx.font = `bold 16px sans-serif`; ctx.fillStyle = COLORS.LABEL;
+                ctx.fillText(label, center.x + 8, center.y - 8);
+            }
+            ctx.restore();
+        }
+
+        function drawSegment(p1, p2, color, lineWidth, extend = false, dashed = false) {
+             if (!p1 || !p2) return;
+             ctx.save(); ctx.scale(scale, scale); ctx.strokeStyle = color;
+             ctx.lineWidth = lineWidth; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+             if(dashed) ctx.setLineDash([5, 5]);
+             
+             let start = p1, end = p2;
+             if (extend) {
+                const length = getDistance(p1, p2);
+                if (length < 0.0001) { ctx.restore(); return; }
+                const dx = (p2.x - p1.x) / length;
+                const dy = (p2.y - p1.y) / length;
+                const extension = 2000;
+                start = { x: p1.x - dx * extension, y: p1.y - dy * extension };
+                end = { x: p2.x + dx * extension, y: p2.y + dy * extension };
+             }
+
+             ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke(); ctx.restore();
+        }
+        
+        function drawCompassArc(center, radius, targetPoint, arcScale = 0.25, isFullArc=false) {
+            if (!center || !targetPoint) return;
+            const angle = Math.atan2(targetPoint.y - center.y, targetPoint.x - center.x);
+            let startAngle = angle - Math.PI * arcScale;
+            let endAngle = angle + Math.PI * arcScale;
+            if(isFullArc) { startAngle = 0; endAngle = Math.PI * 2; }
+
+            ctx.save(); ctx.scale(scale, scale); ctx.strokeStyle = COLORS.COMPASS;
+            ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, startAngle, endAngle); ctx.stroke(); ctx.restore();
+        }
+        
+        function drawCircle(center, radius, color, lineWidth) {
+            ctx.save(); ctx.scale(scale, scale); ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth; ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+        }
+
+        // --- Main Controller ---
+        function drawCurrentState() {
+            clearCanvas();
+            if (!orderedSteps || orderedSteps.length === 0) return;
+            const currentStepName = orderedSteps[state.step];
+            if (!currentStepName || !dynamicSteps[currentStepName]) return;
+            
+            const stepLogic = dynamicSteps[currentStepName];
+            descriptionEl.textContent = stepLogic.description;
+            stepLogic.draw();
+            
+            nextStepBtn.disabled = state.step >= state.maxSteps;
+        }
+
+        function updateCulturalInfo(construction) {
+            const info = CULTURAL_INFO[construction];
+            if (info) {
+                culturalMeaningEl.innerHTML = info.meaning;
+                culturalContextEl.innerHTML = info.context;
+            } else {
+                 culturalMeaningEl.textContent = '暂无该图案的寓意解析。';
+                 culturalContextEl.textContent = '暂无该图案的文化背景信息。';
+            }
+        }
+
+        function handleNextStep() { if (state.step < state.maxSteps) { state.step++; drawCurrentState(); } }
+        function handleReset() { state.step = 0; drawCurrentState(); }
+        function handleConstructionChange() { 
+            state.construction = constructionSelect.value; 
+            setupStepsForConstruction(state.construction); 
+            updateCulturalInfo(state.construction);
+            state.step = 0;
+            drawCurrentState();
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('resize', resizeCanvas);
+        nextStepBtn.addEventListener('click', handleNextStep);
+        resetBtn.addEventListener('click', handleReset);
+        constructionSelect.addEventListener('change', handleConstructionChange);
+
+        // --- Initial Load ---
+        function init() { handleConstructionChange(); resizeCanvas(); }
+        init();
+    </script>
+</body>
+</html>
